@@ -1,0 +1,150 @@
+/* Orders Section Styles */
+.orders .orders-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.orders .orders-header h2 {
+    font-size: 2.4rem;
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.orders .box-container .box {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+.orders .box-container .box:hover {
+    transform: translateY(-5px);
+}
+
+.orders .box-container .box .order-content {
+    padding: 2rem;
+}
+
+.orders .box-container .box .order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.orders .box-container .box .order-date {
+    font-size: 1.4rem;
+    color: #666;
+}
+
+.orders .box-container .box .order-status {
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    font-size: 1.4rem;
+    font-weight: 500;
+}
+
+.orders .box-container .box .order-status.processing {
+    background-color: #3498db;
+    color: #fff;
+}
+
+.orders .box-container .box .order-status.shipped {
+    background-color: #f39c12;
+    color: #fff;
+}
+
+.orders .box-container .box .order-status.delivered {
+    background-color: #27ae60;
+    color: #fff;
+}
+
+.orders .box-container .box .order-status.cancelled {
+    background-color: #e74c3c;
+    color: #fff;
+}
+
+.orders .box-container .box .order-details {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+}
+
+.orders .box-container .box .products-list h4 {
+    font-size: 1.6rem;
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.orders .box-container .box .order-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.orders .box-container .box .order-item:last-child {
+    border-bottom: none;
+}
+
+.orders .box-container .box .item-name {
+    font-size: 1.4rem;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.orders .box-container .box .item-details {
+    font-size: 1.3rem;
+    color: #666;
+}
+
+.orders .box-container .box .order-summary {
+    text-align: right;
+}
+
+.orders .box-container .box .order-summary .total {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.orders .box-container .box .order-summary .method,
+.orders .box-container .box .order-summary .payment-status {
+    font-size: 1.4rem;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* Success Message Animation */
+.swal-overlay {
+    background-color: rgba(0, 0, 0, 0.45);
+}
+
+.swal-modal {
+    background-color: #fff;
+    border-radius: 10px;
+}
+
+.swal-title {
+    color: #27ae60;
+    font-size: 2rem;
+}
+
+.swal-text {
+    color: #333;
+    font-size: 1.6rem;
+}
+
+@media (max-width: 768px) {
+    .orders .box-container .box .order-details {
+        grid-template-columns: 1fr;
+    }
+
+    .orders .box-container .box .order-summary {
+        text-align: left;
+        margin-top: 1rem;
+    }
+}

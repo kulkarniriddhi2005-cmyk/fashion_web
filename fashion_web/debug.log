@@ -1,0 +1,40 @@
+2025-04-03 20:48:14 - No user ID found in cookie
+2025-04-03 20:48:30 - No user ID found in cookie
+2025-04-03 20:48:30 - Place order form submitted
+2025-04-03 20:48:30 - POST data: Array
+(
+    [name] => n
+    [number] => 07588699507
+    [email] => neelgholkar07@gmail.com
+    [method] => cash on delivery
+    [address_type] => home
+    [flat] => Ganesh Colony, Kalamba road
+    [street] => kasheli
+    [city] => Kolhapur
+    [country] => India
+    [pincode] => 416007
+    [place_order] => 
+)
+
+2025-04-03 20:48:30 - User not logged in
+2025-04-03 20:48:37 - No user ID found in cookie
+2025-04-03 20:48:37 - Place order form submitted
+2025-04-03 20:48:37 - POST data: Array
+(
+    [name] => n
+    [number] => 07588699507
+    [email] => neelgholkar07@gmail.com
+    [method] => cash on delivery
+    [address_type] => home
+    [flat] => Ganesh Colony, Kalamba road
+    [street] => kasheli
+    [city] => Kolhapur
+    [country] => India
+    [pincode] => 416007
+    [place_order] => 
+)
+
+2025-04-03 20:48:37 - User not logged in
+2025-04-03 20:48:39 - No user ID found in cookie
+2025-04-03 20:49:00 - No user ID found in cookie
+2025-04-03 20:49:05 - No user ID found in cookie

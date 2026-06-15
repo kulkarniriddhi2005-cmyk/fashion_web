@@ -1,0 +1,356 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+include 'components/connect.php';
+
+// Check if cart is empty first
+include 'check_cart.php';
+
+// Initialize guest session if not logged in
+if (!isset($_SESSION['user_id']) && !isset($_COOKIE['user_id'])) {
+    if (!isset($_SESSION['guest_id'])) {
+        $_SESSION['guest_id'] = 'GUEST_' . time() . bin2hex(random_bytes(8));
+    }
+    $user_id = $_SESSION['guest_id'];
+    $is_guest = true;
+} else {
+    $user_id = $_SESSION['user_id'] ?? $_COOKIE['user_id'];
+    $is_guest = false;
+}
+
+// Initialize cart for guests if not exists
+if ($is_guest && !isset($_SESSION['cart'])) {
+    $_SESSION['cart'] = [];
+}
+
+if(isset($_POST['place_order'])) {
+    // Sanitize and validate input
+    $name = htmlspecialchars(trim($_POST['name']));
+    $number = preg_replace('/[^0-9]/', '', $_POST['number']);
+    $email = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
+    $method = htmlspecialchars(trim($_POST['method']));
+    $address_type = htmlspecialchars(trim($_POST['address_type']));
+    $flat = htmlspecialchars(trim($_POST['flat']));
+    $street = htmlspecialchars(trim($_POST['street']));
+    $city = htmlspecialchars(trim($_POST['city']));
+    $country = htmlspecialchars(trim($_POST['country']));
+    $pincode = preg_replace('/[^0-9]/', '', $_POST['pincode']);
+    
+    $validation_passed = true;
+    
+    // Validate email
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $warning_msg[] = 'Invalid email address!';
+        $validation_passed = false;
+    }
+    
+    // Validate phone number length
+    if (strlen($number) < 10 || strlen($number) > 15) {
+        $warning_msg[] = 'Invalid phone number!';
+        $validation_passed = false;
+    }
+    
+    // Validate pincode
+    if (strlen($pincode) != 6) {
+        $warning_msg[] = 'Invalid pincode!';
+        $validation_passed = false;
+    }
+    
+    if (!$validation_passed) {
+        // Skip the rest of the order processing
+    } else {
+        $address = $flat .', '. $street .', '. $city .', '. $country .' - '. $pincode;
+
+        $order_products = '';
+        $grand_total = 0;
+
+        // Get cart items and calculate total
+        try {
+            $order_items = [];
+            
+            if (!$is_guest) {
+                // Get cart items from database for logged-in users
+                $select_cart = $conn->prepare("SELECT c.*, p.name, p.price, p.stock FROM `cart` c JOIN `products` p ON c.product_id = p.id WHERE c.user_id = ?");
+                $select_cart->execute([$user_id]);
+                
+                if($select_cart->rowCount() > 0){
+                    while($fetch_cart = $select_cart->fetch(PDO::FETCH_ASSOC)){
+                        // Verify stock availability
+                        if($fetch_cart['qty'] > $fetch_cart['stock']) {
+                            $warning_msg[] = "Sorry, {$fetch_cart['name']} only has {$fetch_cart['stock']} items in stock!";
+                            $validation_passed = false;
+                            break;
+                        }
+                        
+                        $order_items[] = [
+                            'product_id' => $fetch_cart['product_id'],
+                            'name' => $fetch_cart['name'],
+                            'qty' => $fetch_cart['qty'],
+                            'price' => $fetch_cart['price']
+                        ];
+                        
+                        $grand_total += ($fetch_cart['price'] * $fetch_cart['qty']);
+                    }
+                }
+            } else {
+                // Get cart items from session for guest users
+                if (isset($_SESSION['cart']) && !empty($_SESSION['cart'])) {
+                    foreach ($_SESSION['cart'] as $product_id) {
+                        $select_product = $conn->prepare("SELECT * FROM products WHERE id = ?");
+                        $select_product->execute([$product_id]);
+                        $product = $select_product->fetch(PDO::FETCH_ASSOC);
+                        if ($product) {
+                            // For guests, quantity is always 1
+                            if ($product['stock'] < 1) {
+                                $warning_msg[] = "Sorry, {$product['name']} is out of stock!";
+                                $validation_passed = false;
+                                break;
+                            }
+
+                            $order_items[] = [
+                                'product_id' => $product_id,
+                                'name' => $product['name'],
+                                'price' => $product['price'],
+                                'qty' => 1
+                            ];
+                            $grand_total += $product['price'];
+                        }
+                    }
+                }
+            }
+            
+            if (empty($order_items)) {
+                $warning_msg[] = 'Your cart is empty!';
+                $validation_passed = false;
+            }
+
+            if($grand_total > 0 && $validation_passed) {
+                try {
+                    $conn->beginTransaction();
+                    
+                    // Generate a more secure order ID
+                    $order_id = 'ORD' . time() . bin2hex(random_bytes(4));
+                    
+                    // Insert into orders table
+                    $insert_order = $conn->prepare("INSERT INTO `orders` (id, user_id, name, number, email, method, address, order_details, total_price, address_type, order_status, payment_status, is_guest, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                    $insert_order->execute([
+                        $order_id,
+                        $user_id,
+                        $name,
+                        $number,
+                        $email,
+                        $method,
+                        $address,
+                        json_encode($order_items),
+                        $grand_total,
+                        $address_type,
+                        'processing',
+                        'pending',
+                        $is_guest ? 1 : 0,
+                        date('Y-m-d H:i:s')
+                    ]);
+                    
+                    // Insert order items and update stock
+                    foreach ($order_items as $item) {
+                        // Insert order item
+                        $insert_item = $conn->prepare("INSERT INTO `order_items` (order_id, product_id, qty, price) VALUES (?,?,?,?)");
+                        $insert_item->execute([$order_id, $item['product_id'], $item['qty'], $item['price']]);
+                        
+                        // Update product stock
+                        $update_stock = $conn->prepare("UPDATE `products` SET stock = stock - ? WHERE id = ? AND stock >= ?");
+                        $result = $update_stock->execute([$item['qty'], $item['product_id'], $item['qty']]);
+                        
+                        if (!$result || $update_stock->rowCount() == 0) {
+                            throw new Exception("Insufficient stock for product ID: {$item['product_id']}");
+                        }
+                    }
+                    
+                    // Clear cart based on user type
+                    if (!$is_guest) {
+                        $delete_cart = $conn->prepare("DELETE FROM `cart` WHERE user_id = ?");
+                        $delete_cart->execute([$user_id]);
+                    } else {
+                        $_SESSION['cart'] = [];
+                    }
+                    
+                    $conn->commit();
+                    
+                    // Show success message with buttons
+                    echo '
+                    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+                    <script>
+                        swal({
+                            title: "Order Placed!",
+                            text: "Your order has been placed successfully!",
+                            icon: "success",
+                            buttons: {
+                                continue: {
+                                    text: "Continue Shopping",
+                                    value: "continue",
+                                },
+                                orders: {
+                                    text: "View Orders",
+                                    value: "orders",
+                                },
+                            },
+                        }).then((value) => {
+                            if (value === "continue") {
+                                window.location.href = "home.php";
+                            } else {
+                                window.location.href = "order.php";
+                            }
+                        });
+                    </script>';
+                    exit();
+                }
+                catch(Exception $e) {
+                    $conn->rollBack();
+                    error_log('Error placing order: ' . $e->getMessage());
+                    $warning_msg[] = 'Error processing your order: ' . $e->getMessage();
+                }
+            }
+        } catch(PDOException $e) {
+            error_log('Error fetching cart: ' . $e->getMessage());
+            $warning_msg[] = 'Error processing your cart. Please try again.';
+            $validation_passed = false;
+        }
+    }
+}
+
+// Display cart summary
+include 'components/user_header.php';
+?>
+
+<div class="main">
+    <div class="banner">
+        <h1>checkout</h1>
+    </div>
+    <div class="title2">
+        <a href="home.php">home </a><span>/ checkout</span>
+    </div>
+    <section class="checkout">
+        <div class="row">
+            <form action="" method="post">
+                <h3>billing details</h3>
+                <div class="flex">
+                    <div class="box">
+                        <div class="input-field">
+                            <p>your name <span>*</span></p>
+                            <input type="text" name="name" required maxlength="50" placeholder="Enter your name" value="<?= htmlspecialchars($name ?? '') ?>">
+                        </div>
+                        <div class="input-field">
+                            <p>your number <span>*</span></p>
+                            <input type="number" name="number" required maxlength="10" placeholder="Enter your number" min="0" max="9999999999" value="<?= htmlspecialchars($number ?? '') ?>">
+                        </div>
+                        <div class="input-field">
+                            <p>your email <span>*</span></p>
+                            <input type="email" name="email" required maxlength="50" placeholder="Enter your email" value="<?= htmlspecialchars($email ?? '') ?>">
+                        </div>
+                        <div class="input-field">
+                            <p>payment method <span>*</span></p>
+                            <select name="method" required>
+                                <option value="cash on delivery">cash on delivery</option>
+                                <option value="credit card">credit card</option>
+                                <option value="paytm">paytm</option>
+                                <option value="paypal">paypal</option>
+                            </select>
+                        </div>
+                        <div class="input-field">
+                            <p>address type <span>*</span></p>
+                            <select name="address_type" required>
+                                <option value="home">home</option>
+                                <option value="office">office</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="box">
+                        <div class="input-field">
+                            <p>address line 01 <span>*</span></p>
+                            <input type="text" name="flat" required maxlength="50" placeholder="e.g. flat no." value="<?= htmlspecialchars($flat ?? '') ?>">
+                        </div>
+                        <div class="input-field">
+                            <p>address line 02 <span>*</span></p>
+                            <input type="text" name="street" required maxlength="50" placeholder="e.g. street name" value="<?= htmlspecialchars($street ?? '') ?>">
+                        </div>
+                        <div class="input-field">
+                            <p>city name <span>*</span></p>
+                            <input type="text" name="city" required maxlength="50" placeholder="enter your city" value="<?= htmlspecialchars($city ?? '') ?>">
+                        </div>
+                        <div class="input-field">
+                            <p>country name <span>*</span></p>
+                            <input type="text" name="country" required maxlength="50" placeholder="enter your country" value="<?= htmlspecialchars($country ?? '') ?>">
+                        </div>
+                        <div class="input-field">
+                            <p>pincode <span>*</span></p>
+                            <input type="number" name="pincode" required maxlength="6" placeholder="e.g. 111111" min="0" max="999999" value="<?= htmlspecialchars($pincode ?? '') ?>">
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" name="place_order" class="btn">place order</button>
+            </form>
+            <div class="summary">
+                <h3>my bag</h3>
+                <div class="box-container">
+                    <?php
+                    $grand_total = 0;
+                    if (!$is_guest) {
+                        // User is logged in, fetch from database
+                        $select_cart = $conn->prepare("SELECT c.*, p.name, p.price, p.thumb_one FROM `cart` c JOIN `products` p ON c.product_id = p.id WHERE c.user_id=?");
+                        $select_cart->execute([$user_id]);
+                        if ($select_cart->rowCount() > 0) {
+                            while ($fetch_cart = $select_cart->fetch(PDO::FETCH_ASSOC)) {
+                                $sub_total = ($fetch_cart['qty'] * $fetch_cart['price']);
+                                $grand_total += $sub_total;
+                                ?>
+                                <div class="flex">
+                                    <img src="uploaded_files/<?= $fetch_cart['thumb_one']; ?>" class="image">
+                                    <div>
+                                        <h3 class="name"><?= $fetch_cart['name']; ?></h3>
+                                        <p class="price">$<?= $fetch_cart['price']; ?> X <?= $fetch_cart['qty']; ?></p>
+                                    </div>
+                                </div>
+                                <?php
+                            }
+                        }
+                    } else {
+                        // Guest user, fetch from session cart
+                        if (isset($_SESSION['cart']) && is_array($_SESSION['cart']) && !empty($_SESSION['cart'])) {
+                            foreach ($_SESSION['cart'] as $product_id) {
+                                $select_products = $conn->prepare("SELECT * FROM products WHERE id=?");
+                                $select_products->execute([$product_id]);
+                                if ($select_products->rowCount() > 0) {
+                                    $product = $select_products->fetch(PDO::FETCH_ASSOC);
+                                    // For guests, default quantity is 1
+                                    $qty = 1;
+                                    $sub_total = $qty * $product['price'];
+                                    $grand_total += $sub_total;
+                                    ?>
+                                    <div class="flex">
+                                        <img src="uploaded_files/<?= $product['thumb_one']; ?>" class="image">
+                                        <div>
+                                            <h3 class="name"><?= $product['name']; ?></h3>
+                                            <p class="price">$<?= $product['price']; ?> X <?= $qty; ?></p>
+                                        </div>
+                                    </div>
+                                    <?php
+                                }
+                            }
+                        }
+                    }
+                    ?>
+                </div>
+                <div class="grand-total">
+                    <span>total amount payable:</span>$<?= $grand_total; ?>/-
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<?php include 'components/user_footer.php'; ?>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/2.1.2/sweetalert.min.js"></script>
+<script src="js/user_script.js"></script>
+<?php include 'components/alert.php'; ?>
+</body>
+</html>
