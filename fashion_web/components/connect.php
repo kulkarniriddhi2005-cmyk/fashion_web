@@ -1,5 +1,9 @@
 <?php
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $db_name = 'mysql:host=localhost;dbname=fashion_db';
 $user_name = 'root';
 $user_password = '';

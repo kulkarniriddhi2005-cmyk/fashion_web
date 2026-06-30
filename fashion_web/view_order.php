@@ -1,6 +1,6 @@
 <?php
 // Corrected file path
-include $_SERVER['DOCUMENT_ROOT'] . '/fashion_web/components/connect.php';
+include 'components/connect.php';
 
 if (isset($_GET['get_id'])) {
     $get_id = $_GET['get_id'];
@@ -10,7 +10,7 @@ if (isset($_GET['get_id'])) {
 }
 
 
-if(isset($_POST['cenceled'])){
+if(isset($_POST['canceled'])){
     $update_order =  $conn->prepare("UPDATE `orders` SET status = ? WHERE ID = ?");
     $update_order->execute(['canceled',$get_id]);
     header('location:order.php');
@@ -79,9 +79,9 @@ if(isset($_POST['cenceled'])){
                                     </div>
                                     <p class="date"><i class="bx bxs-calendar-alt"></i><span><?= htmlspecialchars($fetch_order['date']); ?></span></p>
                                     <div class="detail">
-                                        <p class="price">$<?= htmlspecialchars($fetch_product['price']); ?> X <?= htmlspecialchars($fetch_order['qty']); ?></p>
+                                        <p class="price">&#8377;<?= htmlspecialchars($fetch_product['price']); ?> X <?= htmlspecialchars($fetch_order['qty']); ?></p>
                                         <p class="name"><?= htmlspecialchars($fetch_product['name']); ?></p>
-                                        <p class="grant-total">Total Amount Payable: <span>$<?= number_format($grant_total, 2); ?>/-</span></p>
+                                        <p class="grant-total">Total Amount Payable: <span>&#8377;<?= number_format($grant_total, 2); ?>/-</span></p>
                                     </div>
                                 </div>
                                 <div class="col">
@@ -129,13 +129,10 @@ if(isset($_POST['cenceled'])){
     <!-- SweetAlert CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/2.1.2/sweetalert.min.js"></script>
 
-    <!-- JavaScript -->
-    <script type="text/javascript">
-        <?php include 'script.js'; ?>
-    </script>
+    <script src="js/user_script.js?v=<?= time(); ?>"></script>
 
     <!-- Alert System -->
-    <?php include '../components/alert.php'; ?>
+    <?php include 'components/alert.php'; ?>
 </body>
 
 </html>

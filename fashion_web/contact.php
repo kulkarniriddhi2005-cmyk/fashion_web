@@ -15,8 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_contact'])) {
     $created_at = date("Y-m-d H:i:s");
 
     if (!empty($name) && !empty($email) && !empty($subject) && !empty($message)) {
-        $insert = $conn->prepare("INSERT INTO contact_messages (name, email, subject, message, created_at) VALUES (?, ?, ?, ?, ?)");
-        $insert->execute([$name, $email, $subject, $message, $created_at]);
+        $id = unique_id();
+        $insert = $conn->prepare("INSERT INTO message (id, user_id, name, email, subject, message) VALUES (?, ?, ?, ?, ?, ?)");
+        $insert->execute([$id, $user_id, $name, $email, $subject, $message]);
         $success_msg[] = 'Your message has been sent! We will get back to you within 24 hours.';
     } else {
         $error_msg[] = 'Please fill in all fields before submitting.';

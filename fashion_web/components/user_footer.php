@@ -2,10 +2,10 @@
     <div class="box-detail">
         <h1>Subscribe to Our Newsletter</h1>
         <p>Be the first to discover new arrivals, exclusive collections, and seasonal offers from Zari & Co. Join our style tribe today.</p>
-        <div class="input-field">
-            <input type="email" name="newsletter_email" placeholder="Enter your email address..." class="box" aria-label="Email for newsletter">
-            <button class="btn" type="button">Subscribe</button>
-        </div>
+        <form class="input-field" id="newsletter-form" onsubmit="event.preventDefault(); swal('Success!', 'Thank you for subscribing to our newsletter!', 'success'); this.reset();">
+            <input type="email" name="newsletter_email" placeholder="Enter your email address..." class="box" aria-label="Email for newsletter" required>
+            <button class="btn" type="submit">Subscribe</button>
+        </form>
         <div class="icons">
             <a href="#" aria-label="Facebook"><i class="bx bxl-facebook"></i></a>
             <a href="#" aria-label="Instagram"><i class="bx bxl-instagram-alt"></i></a>

@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Handle Add to Cart and Add to Wishlist via AJAX
-    document.querySelectorAll('form.box').forEach(form => {
+    document.querySelectorAll('form.box, form.product-display').forEach(form => {
         form.addEventListener('submit', function(e) {
             const submitter = e.submitter;
             if (submitter && (submitter.name === 'add_to_cart' || submitter.name === 'add_to_wishlist')) {
@@ -59,9 +59,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     formData.append('product_id', submitter.value);
                 }
 
-                // If submitting to the same page, fetch from the current URL
-                // We'll post to the current URL where the PHP logic includes add_cart.php/add_wishlist.php
-                fetch(window.location.href, {
+                // Post to the dedicated AJAX handler instead of window.location.href
+                fetch('ajax_handler.php', {
                     method: 'POST',
                     body: formData,
                     credentials: 'same-origin'
@@ -75,17 +74,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     try {
                         const data = JSON.parse(text);
                         if (data.status === 'success') {
-                            // Update header counts
-                            if (submitter.name === 'add_to_cart') {
-                                const cartSup = document.querySelector('.cart-btn i.bx-cart');
-                                if (cartSup && cartSup.nextElementSibling) {
-                                    cartSup.nextElementSibling.textContent = data.total;
-                                }
-                            } else {
-                                const wishSup = document.querySelector('.cart-btn i.bx-heart');
-                                if (wishSup && wishSup.nextElementSibling) {
-                                    wishSup.nextElementSibling.textContent = data.total;
-                                }
+                            const wishBadge = document.querySelector('a.cart-btn[href="wishlist.php"] sup');
+                            const cartBadge = document.querySelector('a.cart-btn[href="cart.php"] sup');
+                            if (submitter.name === 'add_to_cart' && cartBadge) {
+                                cartBadge.textContent = data.total;
+                            } else if (submitter.name === 'add_to_wishlist' && wishBadge) {
+                                wishBadge.textContent = data.total;
                             }
                             swal(data.message, "", "success");
                         } else if (data.status === 'warning') {

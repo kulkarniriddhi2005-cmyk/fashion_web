@@ -13,8 +13,8 @@ $user_id = isset($_COOKIE['user_id']) ? $_COOKIE['user_id'] : '';
 
 // Handle AJAX Wishlist Removal
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["action"]) && $_POST["action"] === "remove_wishlist") {
-    $product_id  = filter_var($_POST['product_id'],  FILTER_SANITIZE_NUMBER_INT);
-    $wishlist_id = isset($_POST['wishlist_id']) ? filter_var($_POST['wishlist_id'], FILTER_SANITIZE_NUMBER_INT) : null;
+    $product_id  = trim($_POST['product_id'] ?? '');
+    $wishlist_id = isset($_POST['wishlist_id']) ? trim($_POST['wishlist_id']) : null;
 
     $response = ["success" => false, "message" => "Invalid request"];
 

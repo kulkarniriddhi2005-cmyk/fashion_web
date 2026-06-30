@@ -5,22 +5,19 @@ if (isset($_POST['register'])) {
     $id = unique_id();
 
     $name = $_POST['name'];
-    $name = filter_var($name, FILTER_SANITIZE_STRING);
+    $name = htmlspecialchars($name);
 
     $email = $_POST['email'];
     $email = filter_var($email, FILTER_SANITIZE_EMAIL);
 
     $pass = $_POST['pass'];
-    $pass = filter_var($pass, FILTER_SANITIZE_STRING);
-
     $cpass = $_POST['cpass'];
-    $cpass = filter_var($cpass, FILTER_SANITIZE_STRING);
 
     if ($pass != $cpass) {
         $warning_msg[] = 'Confirm password does not match';
     } else {
         $image = $_FILES['image']['name'];
-        $image = filter_var($image, FILTER_SANITIZE_STRING);
+        $image = htmlspecialchars($image);
         $ext = pathinfo($image, PATHINFO_EXTENSION);
         $rename = unique_id() . '.' . $ext;
         $image_size = $_FILES['image']['size'];
@@ -39,7 +36,7 @@ if (isset($_POST['register'])) {
             if ($select_user->rowCount() > 0) {
                 $warning_msg[] = 'Email already exists';
             } else {
-                $hashed_pass = sha1($pass);
+                $hashed_pass = password_hash($pass, PASSWORD_DEFAULT);
                 $insert_user = $conn->prepare("INSERT INTO users(id, name, email, password, image) VALUES(?, ?, ?, ?, ?)");
                 $insert_user->execute([$id, $name, $email, $hashed_pass, $rename]);
 
@@ -102,9 +99,7 @@ if (isset($_POST['register'])) {
     <!-- SweetAlert CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/2.1.2/sweetalert.min.js"></script>
 
-    <script type="text/javascript">
-        <?php include 'js/script.js'; ?>
-    </script>
+    <script src="js/user_script.js?v=<?= time(); ?>"></script>
 
     <!-- Alert -->
     <?php include 'components/alert.php'; ?>

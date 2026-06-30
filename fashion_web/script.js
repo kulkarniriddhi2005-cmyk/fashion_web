@@ -66,48 +66,7 @@ $('.con').slick({
     ]
 });
 
-// User profile dropdown toggle
-const userBtn = document.querySelector('#user-btn');
-if (userBtn) {
-    userBtn.addEventListener('click', function () {
-        const userBox = document.querySelector('.profile');
-        if (userBox) {
-            userBox.classList.toggle('active');
-        }
-        const searchForm = document.querySelector('.header .flex .search-form');
-        if (searchForm) searchForm.classList.remove('active');
-    });
-}
-
-// Search form toggle
-const searchForm = document.querySelector('.header .flex .search-form');
-const searchBtn = document.querySelector('#search-btn');
-if (searchBtn) {
-    searchBtn.onclick = () => {
-        if (searchForm) searchForm.classList.toggle('active');
-        const profile = document.querySelector('.profile');
-        if (profile) profile.classList.remove('active');
-    };
-}
-
-// Mobile menu toggle
-const toggle = document.querySelector('#menu-btn');
-if (toggle) {
-    toggle.addEventListener('click', function () {
-        const navbar = document.querySelector('.navbar');
-        if (navbar) navbar.classList.toggle('active');
-    });
-}
-
-// Close dropdowns when clicking outside
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.header')) {
-        const profile = document.querySelector('.profile');
-        const searchForm = document.querySelector('.header .flex .search-form');
-        if (profile) profile.classList.remove('active');
-        if (searchForm) searchForm.classList.remove('active');
-    }
-});
+// Handlers for profile, search, and menu toggle have been moved to user_script.js
 
 // Countdown Timer — counts down to the next seasonal sale (Dec 31 each year)
 (function () {
